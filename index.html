@@ -1,2 +1,76 @@
 ﻿<!DOCTYPE html>
-... (paste same HTML as above) ...
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GREEN-API — тестовое задание</title>
+  <style>
+    :root { --border: #d0d7de; --text: #1f2328; --bg: #f6f8fa; --accent: #2da44e; --green: #16a34a; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: var(--text); background: #fff; }
+    .layout { flex: 1; width: min(1080px, 100%); margin: 0 auto; padding: 40px 24px 24px; display: grid; grid-template-columns: 300px 1fr; gap: 40px; align-items: stretch; }
+    .controls { display: flex; flex-direction: column; gap: 12px; }
+    .field, .output { width: 100%; border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; font: inherit; color: var(--text); background: #fff; outline: none; transition: border-color .15s, box-shadow .15s; }
+    .field:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(45, 164, 78, .15); }
+    textarea.field { resize: vertical; min-height: 64px; }
+    button { font: inherit; padding: 9px 12px; border: 1px solid var(--border); border-radius: 6px; background: #fff; color: var(--text); cursor: pointer; transition: background .15s, border-color .15s; }
+    button:hover:not(:disabled) { background: var(--bg); border-color: #afb8c1; }
+    button:active:not(:disabled) { background: #eaeef2; }
+    button:disabled { opacity: .55; cursor: not-allowed; }
+    .spacer { height: 12px; }
+    .output-wrap { display: flex; flex-direction: column; gap: 8px; }
+    #response { flex: 1; min-height: 480px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 13px; line-height: 1.55; white-space: pre; resize: none; background: #fff; }
+    footer { padding: 16px 32px 24px; text-align: right; font-weight: 700; letter-spacing: .3px; color: var(--green); }
+    @media (max-width: 760px) { .layout { grid-template-columns: 1fr; gap: 24px; padding: 24px 16px; } #response { min-height: 320px; } }
+  </style>
+</head>
+<body>
+  <main class="layout">
+    <section class="controls">
+      <input id="idInstance" class="field" type="text" placeholder="idInstance" autocomplete="off" spellcheck="false" />
+      <input id="apiTokenInstance" class="field" type="text" placeholder="ApiTokenInstance" autocomplete="off" spellcheck="false" />
+      <button type="button" data-method="getSettings">getSettings</button>
+      <button type="button" data-method="getStateInstance">getStateInstance</button>
+      <div class="spacer"></div>
+      <input id="messageChatId" class="field" type="text" value="77771234567" placeholder="77771234567" autocomplete="off" spellcheck="false" />
+      <textarea id="messageText" class="field" placeholder="Hello World!">Hello World!</textarea>
+      <button type="button" data-method="sendMessage">sendMessage</button>
+      <div class="spacer"></div>
+      <input id="fileChatId" class="field" type="text" value="77771234567" placeholder="77771234567" autocomplete="off" spellcheck="false" />
+      <input id="fileUrl" class="field" type="text" value="https://my.site.com/img/horse.png" placeholder="https://my.site.com/img/horse.png" autocomplete="off" spellcheck="false" />
+      <button type="button" data-method="sendFileByUrl">sendFileByUrl</button>
+    </section>
+    <section class="output-wrap">
+      <label for="response">Ответ:</label>
+      <textarea id="response" class="output" readonly spellcheck="false" placeholder="Здесь появится ответ метода…"></textarea>
+    </section>
+  </main>
+  <footer>GREEN API © 2025</footer>
+  <script>
+    const API_BASE = 'https://api.green-api.com';
+    const $ = (id) => document.getElementById(id);
+    const output = $('response');
+    const buttons = document.querySelectorAll('button[data-method]');
+    function print(value) { output.value = typeof value === 'string' ? value : JSON.stringify(value, null, 2); }
+    function credentials() { const idInstance = $('idInstance').value.trim(); const apiTokenInstance = $('apiTokenInstance').value.trim(); if (!idInstance || !apiTokenInstance) { throw new Error('Укажите idInstance и ApiTokenInstance'); } return { idInstance, apiTokenInstance }; }
+    function chatIdFrom(value) { const raw = String(value).trim(); if (!raw) throw new Error('Укажите номер получателя в формате 77771234567'); return raw.includes('@') ? raw : raw + '@c.us'; }
+    async function request(method, url, body) { const options = { method }; if (body !== undefined) { options.headers = { 'Content-Type': 'application/json' }; options.body = JSON.stringify(body); } const response = await fetch(url, options); const text = await response.text(); try { return JSON.parse(text); } catch (e) { return text; } }
+    async function run(method) {
+      buttons.forEach((b) => (b.disabled = true)); output.value = 'Загрузка…';
+      try {
+        const { idInstance, apiTokenInstance } = credentials();
+        const url = `${API_BASE}/waInstance${idInstance}/${method}/${apiTokenInstance}`;
+        let result;
+        switch (method) {
+          case 'getSettings': case 'getStateInstance': result = await request('GET', url); break;
+          case 'sendMessage': result = await request('POST', url, { chatId: chatIdFrom($('messageChatId').value), message: $('messageText').value }); break;
+          case 'sendFileByUrl': { const urlFile = $('fileUrl').value.trim(); if (!urlFile) throw new Error('Укажите ссылку на файл (urlFile)'); const fileName = decodeURIComponent(urlFile.split('/').pop().split('?')[0]) || 'file'; result = await request('POST', url, { chatId: chatIdFrom($('fileChatId').value), urlFile: urlFile, fileName: fileName }); break; }
+        }
+        print(result);
+      } catch (error) { print({ error: error.message }); } finally { buttons.forEach((b) => (b.disabled = false)); }
+    }
+    buttons.forEach((button) => { button.addEventListener('click', () => run(button.dataset.method)); });
+  </script>
+</body>
+</html>
