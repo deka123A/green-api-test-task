@@ -1,2 +1,1 @@
-﻿# GREEN-API Test Task â€” Ð¢ÐµÑ…Ð½Ð¸Ñ‡ÐµÑÐºÐ°Ñ Ð¿Ð¾Ð´Ð´ÐµÑ€Ð¶ÐºÐ° 2 Ð»Ð¸Ð½Ð¸Ð¸
-... (paste same README as above) ...
+﻿# GREEN-API Test Tas
